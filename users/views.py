@@ -1,7 +1,8 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .serializers import RegisterSerializer, LoginSerializer
 from django.contrib.auth import authenticate
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import RegisterSerializer, LoginSerializer, CustomTokenObtainPairSerializer
 
 class RegistrationAPIView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
@@ -19,5 +20,7 @@ class AuthorizationAPIView(generics.GenericAPIView):
 
 class ConfirmUserAPIView(generics.GenericAPIView):
     def get(self, request):
-        # Пока заглушка, потом сюда добавим логику подтверждения пользователя
         return Response({"message": "Подтверждение пользователя"})
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

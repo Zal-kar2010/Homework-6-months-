@@ -41,7 +41,7 @@ INSTALLED_APPS = [
     'users',
     'rest_framework.authtoken',
     'querycount',
-    'drf_yasg',
+    'drf_yasg'
 ]
 
 MIDDLEWARE = [

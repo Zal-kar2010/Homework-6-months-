@@ -8,7 +8,8 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=30, blank=True)
     last_name = models.CharField(max_length=30, blank=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
-    
+    birthdate = models.DateField(null=True, blank=True)  # ✅ добавили
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -16,7 +17,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ["phone_number"]  # ✅ добавили
+    REQUIRED_FIELDS = ["phone_number"]
 
     def __str__(self):
         return self.email

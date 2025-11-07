@@ -1,3 +1,4 @@
+# views.py
 from collections import OrderedDict
 from django.db import transaction
 from rest_framework.response import Response
@@ -6,7 +7,6 @@ from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIV
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
-
 
 from .models import Category, Product, Review
 from .serializers import (
@@ -18,6 +18,8 @@ from .serializers import (
     ProductValidateSerializer,
     ReviewValidateSerializer
 )
+from common.permissions import IsOwner, IsAnonymous, CanEditWithin15Minutes
+from common.validators import validate_age_from_token  # ✅ добавлено
 
 PAGE_SIZE = 5
 
@@ -69,23 +71,21 @@ class ProductListCreateAPIView(ListCreateAPIView):
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
     pagination_class = CustomPagination
+    permission_classes = [IsOwner | IsAnonymous]
 
     def post(self, request, *args, **kwargs):
+        # ✅ проверяем возраст пользователя через JWT
+        validate_age_from_token(request)
+
         serializer = ProductValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get validated data
-        title = serializer.validated_data.get('title')
-        description = serializer.validated_data.get('description')
-        price = serializer.validated_data.get('price')
-        category = serializer.validated_data.get('category')
-
-        # Create product
         product = Product.objects.create(
-            title=title,
-            description=description,
-            price=price,
-            category=category
+            title=serializer.validated_data.get('title'),
+            description=serializer.validated_data.get('description'),
+            price=serializer.validated_data.get('price'),
+            category=serializer.validated_data.get('category'),
+            owner=request.user  # берём owner напрямую из request.user
         )
 
         return Response(data=ProductSerializer(product).data,
@@ -96,6 +96,7 @@ class ProductDetailAPIView(RetrieveUpdateDestroyAPIView):
     queryset = Product.objects.select_related('category').all()
     serializer_class = ProductSerializer
     lookup_field = 'id'
+    permission_classes = [(IsOwner & CanEditWithin15Minutes) | IsAnonymous]
 
     def put(self, request, *args, **kwargs):
         product = self.get_object()
@@ -121,16 +122,10 @@ class ReviewViewSet(ModelViewSet):
         serializer = ReviewValidateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Get validated data
-        text = serializer.validated_data.get('text')
-        stars = serializer.validated_data.get('stars')
-        product = serializer.validated_data.get('product')
-
-        # Create review
         review = Review.objects.create(
-            text=text,
-            stars=stars,
-            product=product
+            text=serializer.validated_data.get('text'),
+            stars=serializer.validated_data.get('stars'),
+            product=serializer.validated_data.get('product')
         )
 
         return Response(data=ReviewSerializer(review).data,
